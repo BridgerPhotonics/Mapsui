@@ -1,7 +1,7 @@
 Mapsui-BP
 
 Bridger Photonics fork of:
-Origin: https://github.com/pauldendulk/Mapsui by Paul den DulkForked from the original Mapsui by 
+- Origin: https://github.com/pauldendulk/Mapsui by Paul den DulkForked from the original Mapsui by 
 
 ## Mapsui (pronounced map-su-wii)
 
