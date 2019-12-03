@@ -1,4 +1,4 @@
-using Mapsui.Geometries;
+﻿using Mapsui.Geometries;
 using Mapsui.Providers;
 using Mapsui.Styles;
 using SkiaSharp;
@@ -46,6 +46,8 @@ namespace Mapsui.Rendering.Skia
 
                 using (var paint = new SKPaint())
                 {
+                    paint.IsAntialias = true;
+                    paint.FilterQuality = SKFilterQuality.Low;
                     paint.IsStroke = true;
                     paint.StrokeWidth = lineWidth;
                     paint.Color = lineColor.ToSkia(opacity);
