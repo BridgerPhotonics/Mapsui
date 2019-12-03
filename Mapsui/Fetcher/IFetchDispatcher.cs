@@ -4,7 +4,7 @@ using Mapsui.Geometries;
 
 namespace Mapsui.Fetcher
 {
-    interface IFetchDispatcher
+    public interface IFetchDispatcher
     {
         bool TryTake(ref Action method);
         void SetViewport(BoundingBox extent, double resolution);

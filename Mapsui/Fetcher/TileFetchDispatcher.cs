@@ -1,6 +1,11 @@
-﻿using System;
+﻿#if DEBUG
+//#define CLOCK_FETCH
+#endif
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using BruTile;
@@ -11,7 +16,7 @@ using Mapsui.Providers;
 
 namespace Mapsui.Fetcher
 {
-    class TileFetchDispatcher : IFetchDispatcher, INotifyPropertyChanged
+    public class TileFetchDispatcher : IFetchDispatcher, INotifyPropertyChanged
     {
         private BoundingBox _extent;
         private double _resolution;
@@ -76,8 +81,21 @@ namespace Mapsui.Fetcher
             }
         }
 
+    #if CLOCK_FETCH
+        protected object _statLock = new object();
+        protected List<long> _statList = new List<long>();
+        protected void StatAdd(long value) { lock(_statLock) _statList.Add(value); }
+        public double StatAvg { get { lock(_statLock) return (_statList.Count > 0) ? _statList.Average() : Double.PositiveInfinity; } }
+        public double StatMax { get { lock(_statLock) return (_statList.Count > 0) ? _statList.Max() : Double.PositiveInfinity; } }
+    #endif
+
         private void FetchOnThread(TileInfo tileInfo)
         {
+        #if CLOCK_FETCH
+            Stopwatch statClock = new Stopwatch();
+            statClock.Start();
+        #endif
+
             try
             {
                 var tileData = TileSource.GetTile(tileInfo);
@@ -87,6 +105,11 @@ namespace Mapsui.Fetcher
             {
                 FetchCompleted(tileInfo, null, exception);
             }
+
+        #if CLOCK_FETCH
+            statClock.Stop();
+            StatAdd(statClock.ElapsedMilliseconds);
+        #endif
         }
 
         private void UpdateIfModified()

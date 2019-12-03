@@ -9,7 +9,7 @@ using Mapsui.Styles;
 
 namespace Mapsui.Fetcher
 {
-    class FeatureFetchDispatcher : IFetchDispatcher
+    public class FeatureFetchDispatcher : IFetchDispatcher
     {
         private BoundingBox _extent;
         private double _resolution;
