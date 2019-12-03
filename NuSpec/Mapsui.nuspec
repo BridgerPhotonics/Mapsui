@@ -2,15 +2,18 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
 
   <metadata>
-    <id>Mapsui</id>
+    <id>MapsuiBP</id>
     <version>$version$</version>
-    <title>Mapsui</title>
-    <authors>Paul den Dulk</authors>
-    <owners>Paul den Dulk</owners>
+    <title>MapsuiBP</title>
+    <authors>Sam Gardner</authors>
+    <owners>Bridger Photonics, Inc.</owners>
     <projectUrl>https://github.com/pauldendulk/Mapsui</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>
+      Bridger Photonics fork of:
       Mapsui - Library for mapping
+      Origin: https://github.com/pauldendulk/Mapsui by Paul den Dulk
+
     </description>
     <tags>map maps mapping geo gis osm</tags>
     <language>en-US</language>
