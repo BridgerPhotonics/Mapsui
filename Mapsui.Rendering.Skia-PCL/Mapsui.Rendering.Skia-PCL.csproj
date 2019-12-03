@@ -43,6 +43,7 @@
     <Compile Include="ExtensionMethods\ViewportExtensions.cs" />
     <Compile Include="HyperlinkWidgetRenderer.cs" />
     <Compile Include="CenterCrossWidgetRenderer.cs" />
+    <Compile Include="RenderCache.cs" />
     <Compile Include="ZoomInOutWidgetRenderer.cs" />
     <Compile Include="ScaleBarWidgetRenderer.cs" />
     <Compile Include="SymbolCache.cs" />

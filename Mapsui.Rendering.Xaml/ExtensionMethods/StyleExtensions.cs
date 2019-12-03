@@ -1,4 +1,4 @@
-using Mapsui.Styles;
+﻿using Mapsui.Styles;
 using Brush = Mapsui.Styles.Brush;
 using Color = Mapsui.Styles.Color;
 using Media = System.Windows.Media;
@@ -8,7 +8,7 @@ using System.Windows.Media;
 
 namespace Mapsui.Rendering.Xaml
 {
-    static class StyleExtensions
+    public static class StyleExtensions
     {
         public static DoubleCollection ToXaml(this PenStyle penStyle, float[] dashArray = null)
         {

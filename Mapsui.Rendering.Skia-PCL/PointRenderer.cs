@@ -6,7 +6,7 @@ using SkiaSharp;
 
 namespace Mapsui.Rendering.Skia
 {
-    static class PointRenderer
+    public static class PointRenderer
     {
         public static void Draw(SKCanvas canvas, IViewport viewport, IStyle style, IFeature feature, 
             IGeometry geometry, SymbolCache symbolCache, float opacity)

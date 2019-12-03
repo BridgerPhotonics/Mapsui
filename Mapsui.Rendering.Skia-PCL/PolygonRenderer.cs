@@ -5,7 +5,7 @@ using SkiaSharp;
 
 namespace Mapsui.Rendering.Skia
 {
-    internal static class PolygonRenderer
+    public static class PolygonRenderer
     {
         public static void Draw(SKCanvas canvas, IViewport viewport, IStyle style, IFeature feature, IGeometry geometry,
             float opacity, SymbolCache symbolCache = null)

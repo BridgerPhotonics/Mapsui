@@ -1,4 +1,4 @@
-using Mapsui.Styles;
+﻿using Mapsui.Styles;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Globalization;
@@ -6,7 +6,7 @@ using System.Windows;
 
 namespace Mapsui.Rendering.Xaml
 {
-    internal static class LabelRenderer
+    public static class LabelRenderer
     {
         public static UIElement RenderLabel(Geometries.Point position, LabelStyle labelStyle, IViewport viewport, 
             string labelText)

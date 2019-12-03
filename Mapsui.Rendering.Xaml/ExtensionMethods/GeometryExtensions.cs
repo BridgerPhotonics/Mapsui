@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Mapsui.Geometries;
 using Point = Mapsui.Geometries.Point;
 using XamlMedia = System.Windows.Media;
@@ -6,7 +6,7 @@ using XamlPoint = System.Windows.Point;
 
 namespace Mapsui.Rendering.Xaml
 {
-    static class GeometryExtensions
+    public static class GeometryExtensions
     {
         public static XamlPoint ToXaml(this Point point)
         {

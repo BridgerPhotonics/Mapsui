@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using Mapsui.Providers;
 using Mapsui.Geometries;
 using Mapsui.Layers;
@@ -44,17 +44,17 @@ namespace Mapsui.Rendering.Xaml
             Render(canvas, widgets);
         }
 
-        private void Render(Canvas target, IViewport viewport, IEnumerable<ILayer> layers)
+        public void Render(Canvas target, IViewport viewport, IEnumerable<ILayer> layers)
         {
             Render(target, viewport, layers,  _symbolCache, false);
         }
 
-        private void Render(object target, IEnumerable<IWidget> widgets)
+        public void Render(object target, IEnumerable<IWidget> widgets)
         {
             WidgetRenderer.Render(target, widgets);
         }
 
-        private static void Render(Canvas canvas, IViewport viewport, IEnumerable<ILayer> layers,
+        public static void Render(Canvas canvas, IViewport viewport, IEnumerable<ILayer> layers,
             SymbolCache symbolCache, bool rasterizing)
         {
             canvas.BeginInit();
@@ -76,7 +76,7 @@ namespace Mapsui.Rendering.Xaml
             canvas.EndInit();
         }
 
-        private static void Clear(Canvas canvas, Color background)
+        public static void Clear(Canvas canvas, Color background)
         {
             canvas.Background = ToBackground(background);
 
@@ -88,7 +88,7 @@ namespace Mapsui.Rendering.Xaml
             canvas.Children.Clear();
         }
 
-        private static XamlMedia.SolidColorBrush ToBackground(Color background)
+        public static XamlMedia.SolidColorBrush ToBackground(Color background)
         {
             return background == null ? null : new XamlMedia.SolidColorBrush {Color = background.ToXaml()};
         }
@@ -100,7 +100,7 @@ namespace Mapsui.Rendering.Xaml
             return bitmapStream;
         }
         
-        private static MemoryStream RenderToBitmapStreamStatic(IViewport viewport, IEnumerable<ILayer> layers, SymbolCache symbolCache)
+        public static MemoryStream RenderToBitmapStreamStatic(IViewport viewport, IEnumerable<ILayer> layers, SymbolCache symbolCache)
         {
             var canvas = new Canvas();
             Render(canvas, viewport, layers, symbolCache, true);
@@ -110,7 +110,26 @@ namespace Mapsui.Rendering.Xaml
             return bitmapStream;
         }
 
-        private static void RunMethodOnStaThread(ThreadStart operation)
+        public static MemoryStream RenderFeaturesToBitmapStreamOnSTAThread(IViewport viewport, IEnumerable<IFeature> featureList)
+        {
+            MemoryStream bitmapStream = null;
+            RunMethodOnStaThread(() => bitmapStream = RenderFeaturesToBitmapStream(viewport, featureList, null, true));
+            return bitmapStream;
+        }
+
+        public static MemoryStream RenderFeaturesToBitmapStream(IViewport viewport, IEnumerable<IFeature> featureList, SymbolCache symbolCache, bool rasterize)
+        {
+            var canvas = new Canvas();
+
+            RenderFeaturesToCanvas(canvas, viewport, featureList, symbolCache, rasterize);
+            var bitmapStream = BitmapRendering.BitmapConverter.ToBitmapStream(canvas, (int)viewport.Width, (int)viewport.Height);
+
+            canvas.Children.Clear();
+            canvas.Dispatcher.InvokeShutdown();
+            return bitmapStream;
+        }
+
+        public static void RunMethodOnStaThread(ThreadStart operation)
         {
             var thread = new Thread(operation);
             thread.SetApartmentState(ApartmentState.STA);
@@ -126,7 +145,7 @@ namespace Mapsui.Rendering.Xaml
             target.Children.Add(RenderLayerStatic(viewport, layer, symbolCache, rasterizing));
         }
 
-        private static Canvas RenderLayerStatic(IViewport viewport, ILayer layer, SymbolCache symbolCache, bool rasterizing = false)
+        public static Canvas RenderLayerStatic(IViewport viewport, ILayer layer, SymbolCache symbolCache, bool rasterizing = false)
         {
             // todo:
             // find solution for try catch. Sometimes this method will throw an exception
@@ -189,7 +208,43 @@ namespace Mapsui.Rendering.Xaml
             }
         }
 
-        private static void RenderFeature(IViewport viewport, Canvas canvas, IFeature feature, IStyle style, SymbolCache symbolCache, bool rasterizing)
+        public static void RenderFeaturesToCanvas(Canvas canvas, IViewport viewport, IEnumerable<IFeature> featureList, SymbolCache symbolCache, bool rasterizing)
+        {
+            canvas.BeginInit();
+            canvas.Visibility = Visibility.Collapsed;
+
+            canvas.Children.Add(RenderFeatures(viewport, featureList, symbolCache, rasterizing));
+
+            canvas.Arrange(new Rect(0, 0, viewport.Width, viewport.Height));
+
+            canvas.Visibility = Visibility.Visible;
+            canvas.EndInit();
+        }
+
+        public static Canvas RenderFeatures(IViewport viewport, IEnumerable<IFeature> featureList, SymbolCache symbolCache, bool rasterizing)
+        {
+            if (symbolCache == null) symbolCache = new SymbolCache();
+            var canvas = new Canvas { IsHitTestVisible = false };
+
+            try
+            {
+                foreach (var feature in featureList)
+                {
+                    var styleList = feature.Styles ?? Enumerable.Empty<IStyle>();
+                    foreach (var style in styleList)
+                        if (feature.Styles != null && style.Enabled)
+                            RenderFeature(viewport, canvas, feature, style, symbolCache, rasterizing);
+                }
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine("Exception in xaml render features: " + e.Message);
+            }
+
+            return canvas;
+        }
+
+        public static void RenderFeature(IViewport viewport, Canvas canvas, IFeature feature, IStyle style, SymbolCache symbolCache, bool rasterizing)
         {
             if (style is LabelStyle)
             {
@@ -209,8 +264,15 @@ namespace Mapsui.Rendering.Xaml
                 }
                 else
                 {
-                    renderedGeometry = RenderGeometry(viewport, style, feature, symbolCache);
-                    if (!rasterizing) feature.RenderedGeometry[style] = renderedGeometry;
+                    if(rasterizing)
+                    {
+                        renderedGeometry = RenderGeometry(viewport, style, feature, symbolCache);
+                    }
+                    else
+                    {
+                        renderedGeometry = RenderGeometryRasterize(viewport, style, feature, symbolCache);
+                        feature.RenderedGeometry[style] = renderedGeometry;
+                    }
                 }
 
                 if (!canvas.Children.Contains(renderedGeometry))
@@ -219,7 +281,29 @@ namespace Mapsui.Rendering.Xaml
             }
         }
 
-        private static Shape RenderGeometry(IViewport viewport, IStyle style, IFeature feature,
+        public static Shape RenderGeometryRasterize(IViewport viewport, IStyle style, IFeature feature, SymbolCache symbolCache)
+        {
+            if (feature.Geometry is Geometries.Point)
+                lock(style)
+                    return PointRenderer.RenderPoint(feature.Geometry as Geometries.Point, style, viewport, symbolCache);
+            if (feature.Geometry is MultiPoint)
+                lock(style)
+                    return GeometryRenderer.RenderMultiPoint(feature.Geometry as MultiPoint, style, viewport, symbolCache);
+            if (feature.Geometry is LineString)
+                return LineStringRenderer.RenderLineString(feature.Geometry as LineString, style, viewport);
+            if (feature.Geometry is MultiLineString)
+                return MultiLineStringRenderer.Render(feature.Geometry as MultiLineString, style, viewport);
+            if (feature.Geometry is Polygon)
+                return PolygonRenderer.RenderPolygon(feature.Geometry as Polygon, style, viewport, symbolCache);
+            if (feature.Geometry is MultiPolygon)
+                return MultiPolygonRenderer.RenderMultiPolygon(feature.Geometry as MultiPolygon, style, viewport, symbolCache);
+            if (feature.Geometry is IRaster)
+                lock(feature)
+                    return GeometryRenderer.RenderRaster(feature.Geometry as IRaster, style, viewport);
+            return null;
+        }
+
+        public static Shape RenderGeometry(IViewport viewport, IStyle style, IFeature feature,
             SymbolCache symbolCache)
         {
             if (feature.Geometry is Geometries.Point)
@@ -239,7 +323,7 @@ namespace Mapsui.Rendering.Xaml
             return null;
         }
 
-        private static void PositionGeometry(Shape renderedGeometry, IViewport viewport, IStyle style, IFeature feature)
+        public static void PositionGeometry(Shape renderedGeometry, IViewport viewport, IStyle style, IFeature feature)
         {
             if (feature.Geometry is Geometries.Point)
                 PointRenderer.PositionPoint(renderedGeometry, feature.Geometry as Geometries.Point, style, viewport);
