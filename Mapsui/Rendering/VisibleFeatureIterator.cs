@@ -1,4 +1,4 @@
-using Mapsui.Layers;
+﻿using Mapsui.Layers;
 using Mapsui.Providers;
 using Mapsui.Styles;
 using Mapsui.Styles.Thematics;
@@ -66,7 +66,7 @@ namespace Mapsui.Rendering
             }
         }
 
-        private static bool ShouldNotBeApplied(IStyle style, IReadOnlyViewport viewport)
+        public static bool ShouldNotBeApplied(IStyle style, IReadOnlyViewport viewport)
         {
             return style == null || !style.Enabled || style.MinVisible > viewport.Resolution || style.MaxVisible < viewport.Resolution;
         }
