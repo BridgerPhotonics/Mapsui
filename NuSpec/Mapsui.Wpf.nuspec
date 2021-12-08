@@ -1,15 +1,17 @@
 <?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
-    <id>Mapsui.Wpf</id>
+    <id>MapsuiBP.Wpf</id>
     <version>$version$</version>
     <title>Mapsui</title>
-    <authors>Paul den Dulk</authors>
-    <owners>Paul den Dulk</owners>
+    <authors>Paul den Dulk, Sam Gardner</authors>
+    <owners>Paul den Dulk, Bridger Photonics, Inc.</owners>
     <projectUrl>https://github.com/Mapsui/Mapsui</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>
+      Bridger Photonics fork of:
       WPF map components based on the Mapsui library
+      Origin: https://github.com/Mapsui/Mapsui by Paul den Dulk
     </description>
     <tags>map maps mapping geo gis osm</tags>
     <copyright>© Mapsui Contributors</copyright>
