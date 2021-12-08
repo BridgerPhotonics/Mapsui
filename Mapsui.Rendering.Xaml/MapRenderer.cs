@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using Mapsui.Providers;
 using Mapsui.Geometries;
 using Mapsui.Layers;
@@ -130,6 +130,25 @@ namespace Mapsui.Rendering.Xaml
             return bitmapStream;
         }
 
+        public static MemoryStream RenderFeaturesToBitmapStreamOnSTAThread(IViewport viewport, IEnumerable<IFeature> featureList)
+        {
+            MemoryStream bitmapStream = null;
+            RunMethodOnStaThread(() => bitmapStream = RenderFeaturesToBitmapStream(viewport, featureList, null, true));
+            return bitmapStream;
+        }
+
+        public static MemoryStream RenderFeaturesToBitmapStream(IViewport viewport, IEnumerable<IFeature> featureList, SymbolCache symbolCache, bool rasterize)
+        {
+            var canvas = new Canvas();
+
+            RenderFeaturesToCanvas(canvas, viewport, featureList, symbolCache, rasterize);
+            var bitmapStream = BitmapRendering.BitmapConverter.ToBitmapStream(canvas, (int)viewport.Width, (int)viewport.Height);
+
+            canvas.Children.Clear();
+            canvas.Dispatcher.InvokeShutdown();
+            return bitmapStream;
+        }
+
         private static void RunMethodOnStaThread(ThreadStart operation)
         {
             var thread = new Thread(operation);
@@ -209,6 +228,42 @@ namespace Mapsui.Rendering.Xaml
             }
         }
 
+        public static void RenderFeaturesToCanvas(Canvas canvas, IViewport viewport, IEnumerable<IFeature> featureList, SymbolCache symbolCache, bool rasterizing)
+        {
+            canvas.BeginInit();
+            canvas.Visibility = Visibility.Collapsed;
+
+            canvas.Children.Add(RenderFeatures(viewport, featureList, symbolCache, rasterizing));
+
+            canvas.Arrange(new Rect(0, 0, viewport.Width, viewport.Height));
+
+            canvas.Visibility = Visibility.Visible;
+            canvas.EndInit();
+        }
+
+        public static Canvas RenderFeatures(IViewport viewport, IEnumerable<IFeature> featureList, SymbolCache symbolCache, bool rasterizing)
+        {
+            if (symbolCache == null) symbolCache = new SymbolCache();
+            var canvas = new Canvas { IsHitTestVisible = false };
+
+            try
+            {
+                foreach (var feature in featureList)
+                {
+                    var styleList = feature.Styles ?? Enumerable.Empty<IStyle>();
+                    foreach (var style in styleList)
+                        if (feature.Styles != null && style.Enabled)
+                            RenderFeature(viewport, canvas, feature, style, symbolCache, rasterizing);
+                }
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine("Exception in xaml render features: " + e.Message);
+            }
+
+            return canvas;
+        }
+
         private static void RenderFeature(IReadOnlyViewport viewport, Canvas canvas, IFeature feature, IStyle style, SymbolCache symbolCache, bool rasterizing)
         {
             //// Check, if we have a special renderer for this style
@@ -240,14 +295,43 @@ namespace Mapsui.Rendering.Xaml
                 }
                 else
                 {
-                    renderedGeometry = RenderGeometry(viewport, style, feature, symbolCache);
-                    if (!rasterizing) feature.RenderedGeometry[style] = renderedGeometry;
+                    if (rasterizing)
+                    {
+                        renderedGeometry = RenderGeometryRasterize(viewport, style, feature, symbolCache);
+                    }
+                    else
+                    {
+                        renderedGeometry = RenderGeometry(viewport, style, feature, symbolCache);
+                        feature.RenderedGeometry[style] = renderedGeometry;
+                    }
                 }
 
                 if (!canvas.Children.Contains(renderedGeometry))
                     // Adding twice can happen when a single feature has two identical styles
                     canvas.Children.Add(renderedGeometry);
             }
+        }
+
+        private static Shape RenderGeometryRasterize(IReadOnlyViewport viewport, IStyle style, IFeature feature, SymbolCache symbolCache)
+        {
+            if (feature.Geometry is Geometries.Point)
+                lock (style)
+                    return PointRenderer.RenderPoint(feature.Geometry as Geometries.Point, style, viewport, symbolCache);
+            if (feature.Geometry is MultiPoint)
+                lock (style)
+                    return GeometryRenderer.RenderMultiPoint(feature.Geometry as MultiPoint, style, viewport, symbolCache);
+            if (feature.Geometry is LineString)
+                return LineStringRenderer.RenderLineString(feature.Geometry as LineString, style, viewport);
+            if (feature.Geometry is MultiLineString)
+                return MultiLineStringRenderer.Render(feature.Geometry as MultiLineString, style, viewport);
+            if (feature.Geometry is Polygon)
+                return PolygonRenderer.RenderPolygon(feature.Geometry as Polygon, style, viewport, symbolCache);
+            if (feature.Geometry is MultiPolygon)
+                return MultiPolygonRenderer.RenderMultiPolygon(feature.Geometry as MultiPolygon, style, viewport, symbolCache);
+            if (feature.Geometry is IRaster)
+                lock (feature)
+                    return GeometryRenderer.RenderRaster(feature.Geometry as IRaster, style, viewport);
+            return null;
         }
 
         private static Shape RenderGeometry(IReadOnlyViewport viewport, IStyle style, IFeature feature,

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -144,6 +144,99 @@ namespace Mapsui.Rendering.Skia
                 textureInfo.Bitmap.Dispose();
                 counter++;
             }
+        }
+
+        public static MemoryStream RenderFeaturesToBitmapStream(IViewport viewport, IEnumerable<IFeature> featureList, RenderCache cache = null, Color background = null, float pixelDensity = 1, float opacity = 1.0f)
+        {
+            try
+            {
+                var width = (int)viewport.Width;
+                var height = (int)viewport.Height;
+                var imageInfo = new SKImageInfo((int)Math.Round(width * pixelDensity), (int)Math.Round(height * pixelDensity),
+                    SKImageInfo.PlatformColorType, SKAlphaType.Unpremul);
+
+                using (var surface = SKSurface.Create(imageInfo))
+                {
+                    if (surface == null) return null;
+                    // Not sure if this is needed here:
+                    if (background != null) surface.Canvas.Clear(background.ToSkia(1));
+                    surface.Canvas.Scale(pixelDensity, pixelDensity);
+                    RenderFeaturesRasterize(surface.Canvas, viewport, featureList, cache, opacity);
+                    using (var image = surface.Snapshot())
+                    {
+                        using (var data = image.Encode())
+                        {
+                            var memoryStream = new MemoryStream();
+                            data.SaveTo(memoryStream);
+                            return memoryStream;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("RenderFeatureToBitmapStream exception: " + ex.Message);
+                Logger.Log(LogLevel.Error, ex.Message);
+                return null;
+            }
+        }
+
+        public static void RenderFeaturesRasterize(SKCanvas canvas, IViewport viewport, IEnumerable<IFeature> featureList, RenderCache cache = null, float opacity = 1.0f)
+        {
+            try
+            {
+                if (cache == null) cache = new RenderCache();
+                foreach (var feature in featureList)
+                {
+                    var featureStyleList = feature.Styles ?? Enumerable.Empty<IStyle>();
+                    foreach (var style in featureStyleList)
+                    {
+                        if (VisibleFeatureIterator.ShouldNotBeApplied(style, viewport)) continue;
+                        if (style is StyleCollection styles) // The ThemeStyle can again return a StyleCollection
+                        {
+                            foreach (var s in styles)
+                            {
+                                if (VisibleFeatureIterator.ShouldNotBeApplied(s, viewport)) continue;
+                                RenderFeatureRasterize(canvas, viewport, style, feature, cache, opacity);
+                            }
+                        }
+                        else
+                        {
+                            RenderFeatureRasterize(canvas, viewport, style, feature, cache, opacity);
+                        }
+                    }
+                }
+
+                cache.RemovedUnusedBitmapsFromCache();
+            }
+            catch (Exception exception)
+            {
+                Logger.Log(LogLevel.Error, "Unexpected error in skia renderer", exception);
+            }
+        }
+
+        public static void RenderFeatureRasterize(SKCanvas canvas, IReadOnlyViewport viewport, IStyle style, IFeature feature, RenderCache cache, float layerOpacity = 1.0f)
+        {
+            // Special style renderer not supported
+            // as making it threadsafe would likely cause excess lock-contention
+
+            if (feature.Geometry is Point)
+                lock (style)
+                    PointRenderer.Draw(canvas, viewport, style, feature, feature.Geometry, cache.SymbolCache, layerOpacity * style.Opacity);
+            else if (feature.Geometry is MultiPoint)
+                lock (style)
+                    MultiPointRenderer.Draw(canvas, viewport, style, feature, feature.Geometry, cache.SymbolCache, layerOpacity * style.Opacity);
+            else if (feature.Geometry is LineString)
+                LineStringRenderer.Draw(canvas, viewport, style, feature, feature.Geometry, layerOpacity * style.Opacity);
+            else if (feature.Geometry is MultiLineString)
+                MultiLineStringRenderer.Draw(canvas, viewport, style, feature, feature.Geometry, layerOpacity * style.Opacity);
+            else if (feature.Geometry is Polygon)
+                PolygonRenderer.Draw(canvas, viewport, style, feature, feature.Geometry, layerOpacity * style.Opacity, cache.SymbolCache);
+            else if (feature.Geometry is MultiPolygon)
+                MultiPolygonRenderer.Draw(canvas, viewport, style, feature, feature.Geometry, layerOpacity * style.Opacity, cache.SymbolCache);
+            else if (feature.Geometry is IRaster)
+                lock (feature)
+                    RasterRenderer.Draw(canvas, viewport, style, feature, layerOpacity * style.Opacity, cache.TileCache, cache.CurrentIteration);
         }
 
         private void RenderFeature(SKCanvas canvas, IReadOnlyViewport viewport, ILayer layer, IStyle style, IFeature feature, float layerOpacity)
