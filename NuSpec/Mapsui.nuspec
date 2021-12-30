@@ -6,14 +6,13 @@
     <version>$version$</version>
     <title>MapsuiBP</title>
     <authors>Paul den Dulk, Sam Gardner</authors>
-    <owners>Bridger Photonics, Inc.</owners>
-    <projectUrl>https://github.com/gardner-bp/Mapsui</projectUrl>
+    <owners>Paul den Dulk, Bridger Photonics, Inc.</owners>
+    <projectUrl>https://github.com/BridgerPhotonics/Mapsui</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>
       Bridger Photonics fork of:
       Mapsui - Library for mapping
-      Origin: https://github.com/pauldendulk/Mapsui by Paul den Dulk
-
+      Origin: https://github.com/Mapsui/Mapsui by Paul den Dulk
     </description>
     <tags>map maps mapping geo gis osm</tags>
     <language>en-US</language>

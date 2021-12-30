@@ -1,21 +1,12 @@
 Mapsui-BP
 
 Bridger Photonics fork of:
-- Origin: https://github.com/pauldendulk/Mapsui by Paul den Dulk
+- Mapsui 1.4.8 (branch 1.4.8-bp)
 
-## Mapsui (pronounced map-su-wii)
+## Origin
 
-Mapsui is a C# map component for apps
+https://github.com/Mapsui/Mapsui by Paul den Dulk
 
-- Supported platforms: WPF, UWP, Android, iOS
-- The core PCL is Profile 111
-- Designed to be fast and responsive (see [architecture](https://github.com/pauldendulk/Mapsui/wiki/Async-Fetching))
-- Started as a fork of SharpMap
+## License
 
-## Supported Platforms
-
-- **WPF** - Windows Desktop on .NET 4.5.2
-
-## License 
-
-[LGPL](https://raw.githubusercontent.com/pauldendulk/Mapsui/master/LICENSE.md)
+[LGPL](https://raw.githubusercontent.com/mapsui/Mapsui/master/LICENSE.md)
